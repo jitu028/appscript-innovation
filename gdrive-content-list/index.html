@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <h2>Enter Folder Name to Search</h2>
+    <input type="text" id="folderName" placeholder="Enter Folder Name">
+    <button onclick="searchFolders()">Search Folders</button>
+
+    <div id="folderList"></div>
+    <div id="folderContents"></div>
+
+    <script>
+      function searchFolders() {
+        var folderName = document.getElementById('folderName').value;
+        google.script.run.withSuccessHandler(displayFolders).findFoldersByName(folderName);
+      }
+
+      function displayFolders(folders) {
+        var folderListDiv = document.getElementById('folderList');
+        folderListDiv.innerHTML = '';
+        if (folders.length > 0) {
+          var list = '<ul>';
+          folders.forEach(function(folder) {
+            list += '<li>' + folder.name + ' <button onclick="showFolderContents(\'' + folder.id + '\')">Show Contents</button></li>';
+          });
+          list += '</ul>';
+          folderListDiv.innerHTML = list;
+        } else {
+          folderListDiv.innerHTML = 'No folders found';
+        }
+      }
+
+      function showFolderContents(folderId) {
+        google.script.run.withSuccessHandler(displayFolderContents).getFolderContents(folderId);
+      }
+
+      function displayFolderContents(contents) {
+        var folderContentsDiv = document.getElementById('folderContents');
+        folderContentsDiv.innerHTML = '<h3>Contents of "' + contents.name + '":</h3>';
+        var contentsList = createContentsList(contents);
+        contentsList.style.display = 'none'; // Initially hide contents
+        var toggleButton = document.createElement('button');
+        toggleButton.textContent = 'Show Contents';
+        toggleButton.onclick = function() {
+          if (contentsList.style.display === 'none') {
+            contentsList.style.display = 'block';
+            toggleButton.textContent = 'Hide Contents';
+          } else {
+            contentsList.style.display = 'none';
+            toggleButton.textContent = 'Show Contents';
+          }
+        };
+        folderContentsDiv.appendChild(toggleButton);
+        folderContentsDiv.appendChild(contentsList);
+      }
+
+      function createContentsList(contents) {
+        var list = document.createElement('ul');
+
+        contents.subfolders.forEach(function(subfolder) {
+          var li = document.createElement('li');
+          li.textContent = 'Folder: ' + subfolder.path;
+          var subList = createContentsList(subfolder);
+          subList.style.display = 'none'; // Initially hide subfolder contents
+          var subToggleButton = document.createElement('button');
+          subToggleButton.textContent = 'Show Contents';
+          subToggleButton.onclick = function() {
+            if (subList.style.display === 'none') {
+              subList.style.display = 'block';
+              subToggleButton.textContent = 'Hide Contents';
+            } else {
+              subList.style.display = 'none';
+              subToggleButton.textContent = 'Show Contents';
+            }
+          };
+          li.appendChild(subToggleButton);
+          li.appendChild(subList);
+          list.appendChild(li);
+        });
+
+        contents.files.forEach(function(file) {
+          var li = document.createElement('li');
+          li.innerHTML = 'File: <a href="' + file.url + '" target="_blank">' + file.name + '</a>';
+          list.appendChild(li);
+        });
+
+        return list;
+      }
+    </script>
+  </body>
+</html>
